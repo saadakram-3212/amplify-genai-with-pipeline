@@ -30,6 +30,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # Required for cross-workflow artifact download
 
     outputs:
       backend_var_file: ${{ steps.set_outputs.outputs.backend_var_file }}
@@ -44,10 +47,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Terraform outputs
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v11
         with:
+          workflow: iac-deploy.yml  # Replace with your IAC workflow filename
           name: tf-outputs
           path: ./tf
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_conclusion: success
 
       - name: Generate backend var file from template
         id: generate_var
