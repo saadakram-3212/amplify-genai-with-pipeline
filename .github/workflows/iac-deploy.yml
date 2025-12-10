@@ -35,6 +35,9 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: us-east-1
+    
+    outputs:
+      tf_outputs: ${{ steps.export_tf.outputs.tfjson }}
 
     steps:
       - name: Checkout
@@ -48,7 +51,7 @@ jobs:
       - name: Select environment folder
         id: folder
         run: |
-          ENV="${{ inputs.environment }}"
+          ENV="${{ github.event.inputs.environment || inputs.environment }}"
           echo "env_folder=amplify-genai-iac/${ENV}" >> $GITHUB_ENV
 
       - name: Terraform Init
@@ -63,3 +66,17 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         working-directory: ${{ env.env_folder }}
         run: terraform apply -var-file="terraform.tfvars" -auto-approve
+
+      - name: Export Terraform Outputs as JSON
+        id: export_tf
+        working-directory: ${{ env.env_folder }}
+        run: |
+          terraform output -json > tf.json
+          TF_JSON=$(cat tf.json | jq -c '.')
+          echo "tfjson=$TF_JSON" >> $GITHUB_OUTPUT
+
+      - name: Upload tf.json for other workflows
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf-outputs
+          path: ${{ env.env_folder }}/tf.json
