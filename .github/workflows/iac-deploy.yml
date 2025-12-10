@@ -59,3 +59,7 @@ jobs:
         working-directory: ${{ env.env_folder }}
         run: terraform plan -var-file="terraform.tfvars"
 
+      - name: Terraform Apply
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ env.env_folder }}
+        run: terraform apply -var-file="terraform.tfvars" -auto-approve
