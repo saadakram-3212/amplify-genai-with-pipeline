@@ -1,0 +1,424 @@
+service: amplify-${self:custom.stageVars.DEP_NAME}-amplify-js
+frameworkVersion: '3'
+
+plugins:
+  - serverless-offline
+  - serverless-prune-plugin 
+  - serverless-cloudformation-changesets-v3
+
+custom:
+  serverless-offline: 
+    custom:
+      config: ${file(../var/${self:provider.stage}-var.yml)} 
+  stageVars: ${file(../var/${self:provider.stage}-var.yml)} 
+
+  cf-changesets:
+    requireChangeSet: ${self:custom.stageVars.CHANGE_SET_BOOLEAN}
+
+  stages:
+    - dev
+    - staging
+    - prod
+    
+  prune:
+    automatic: true
+    includeLayers: true
+    number: 5    
+
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  stage: ${opt:stage, 'dev'}
+  region: ${self:custom.stageVars.DEP_REGION}
+  versionFunctions: false
+  logRetentionInDays: 365
+  tracing:
+    lambda: true
+  apiGateway:
+    restApiId:
+      Fn::ImportValue: !Sub "${sls:stage}-RestApiId"
+    restApiRootResourceId:
+      Fn::ImportValue: !Sub "${sls:stage}-RestApiRootResourceId"   
+
+  environment:
+    CHANGE_SET_BOOLEAN: ${self:custom.stageVars.CHANGE_SET_BOOLEAN}
+    LLM_ENDPOINTS_SECRETS_NAME_ARN: ${self:custom.stageVars.LLM_ENDPOINTS_SECRETS_NAME_ARN}
+    DATASOURCE_REGISTRY_DYNAMO_TABLE: ${self:service}-${sls:stage}-datasource-registry
+    #Combined Vars:
+    LLM_ENDPOINTS_SECRETS_NAME: ${self:custom.stageVars.LLM_ENDPOINTS_SECRETS_NAME}
+    SECRETS_ARN_NAME: ${sls:stage}-amplify-app-secrets
+    S3_FILE_TEXT_BUCKET_NAME: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-file-text-mytest
+    COGNITO_USER_POOL_ID: ${self:custom.stageVars.COGNITO_USER_POOL_ID}
+    COGNITO_CLIENT_ID: ${self:custom.stageVars.COGNITO_CLIENT_ID}
+    HASH_FILES_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-hash-files
+    ASSISTANT_QUEUE_NAME: amplify-${self:custom.stageVars.DEP_NAME}-${self:service}-${sls:stage}-assistant-queue
+    ASSISTANT_TASK_RESULTS_BUCKET_NAME: amplify-${self:custom.stageVars.DEP_NAME}-${self:service}-${sls:stage}-ast-results-mytest
+    ASSISTANT_LOGS_BUCKET_NAME: amplify-${self:custom.stageVars.DEP_NAME}-${sls:stage}-assistant-chat-logs-mytest
+    ASSISTANTS_ALIASES_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-assistants-${sls:stage}-assistant-aliases
+    ASSISTANTS_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-assistants-${sls:stage}-assistants
+    ASSISTANT_LOOKUP_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-assistants-${sls:stage}-assistant-lookup
+    CHAT_USAGE_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-chat-usage
+    REQUEST_STATE_DYNAMO_TABLE: ${self:service}-${sls:stage}-request-state
+    TRACE_BUCKET_NAME: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-chat-traces-mytest
+    TRACING_ENABLED: false
+    API_KEYS_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-object-access-${sls:stage}-api-keys
+    #API_BASE_URL: https://${self:custom.stageVars.CUSTOM_API_DOMAIN}
+    API_BASE_URL:
+      Fn::ImportValue:
+        Fn::Sub: "${sls:stage}-ApiGatewayUrl"
+    COST_CALCULATIONS_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-cost-calculations
+    HISTORY_COST_CALCULATIONS_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-history-cost-calculations
+    MODEL_RATE_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-chat-billing-${sls:stage}-model-rates
+    LAMBDA_JS_IAM_POLICY_NAME: ${self:service}-${sls:stage}-iam-policy
+    GROUPS_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-object-access-${sls:stage}-amplify-groups
+    GROUP_ASSISTANT_CONVERSATIONS_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-assistants-${sls:stage}-group-assistant-conversations
+    S3_GROUP_ASSISTANT_CONVERSATIONS_BUCKET_NAME: amplify-${self:custom.stageVars.DEP_NAME}-assistants-${sls:stage}-group-conversations-content-mytest
+    S3_IMAGE_INPUT_BUCKET_NAME: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-image-input-mytest
+    IDP_PREFIX: ${self:custom.stageVars.IDP_PREFIX}
+    ADMIN_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-admin-${sls:stage}-admin-configs
+    DEP_REGION: ${self:custom.stageVars.DEP_REGION} 
+    AGENT_ENDPOINT: ${self:custom.stageVars.AGENT_ENDPOINT}
+    AGENT_STATE_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-agent-loop-${sls:stage}-agent-state
+    S3_RAG_INPUT_BUCKET_NAME: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-rag-input-mytest
+    BEDROCK_GUARDRAIL_ID: ${self:custom.stageVars.BEDROCK_GUARDRAIL_ID, ''}
+    BEDROCK_GUARDRAIL_VERSION: ${self:custom.stageVars.BEDROCK_GUARDRAIL_VERSION, ''}
+    
+  iam:
+    role:
+      managedPolicies:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Ref LambdaJSIAMPolicy
+        - !Ref BedrockIAMPolicy
+        #- arn:aws:iam::${aws:accountId}:policy/${self:provider.environment.LAMBDA_JS_IAM_POLICY_NAME}
+
+
+functions:
+  chat:
+    handler: index.handler
+    memorySize: 1024
+    timeout: 900
+    tracing: Active
+    url:
+      cors: true
+      invokeMode: RESPONSE_STREAM
+    environment:
+        assistant_task_queue_url:
+          Ref: AssistantTaskQueue
+
+  api_g_chat:
+    handler: indexApiG.handler
+    memorySize: 1024
+    timeout: 180
+    environment:
+        assistant_task_queue_url:
+          Ref: AssistantTaskQueue
+    events:
+      - http:
+          path: api_g_chat/chat
+          method: post
+          cors: true
+
+
+  assistant_queue:
+    handler: assistantQueueRouter.handler
+    memorySize: 1024
+    timeout: 900
+    events:
+        - sqs:
+            arn:
+              Fn::GetAtt:
+                - AssistantTaskQueue
+                - Arn
+    environment:
+        assistant_task_queue_url:
+          Ref: AssistantTaskQueue
+
+  reset_billing:
+    handler: billing/reset.handler
+    memorySize: 512 # increased memory size to increase speed
+    timeout: 900 # 900 seconds (15 minutes) is the maximum
+    events:
+      - schedule:
+          rate: cron(0 0 * * ? *) # trigger at midnight UTC every day
+
+  # provides real-time usage information via API gateway
+  mtd_cost_reporter:
+    handler: billing/mtd.handler
+    memorySize: 128
+    events:
+      - http:
+          path: billing/mtd-cost
+          method: post
+          cors: true
+
+  api_key_user_cost:
+    handler: billing/mtd.apiKeyUserCostHandler
+    memorySize: 128
+    events:
+      - http:
+          path: billing/api-key-user-cost
+          method: post
+          cors: true
+
+  billing_groups_costs:
+    handler: billing/mtd.billingGroupsCostsHandler
+    memorySize: 256
+    timeout: 60
+    events:
+      - http:
+          path: billing/billing-groups-costs
+          method: post
+          cors: true
+
+  list_all_user_mtd_costs:
+    handler: billing/mtd.listAllUserMtdCostsHandler
+    memorySize: 128
+    events:
+      - http:
+          path: billing/list-all-user-mtd-costs
+          method: post
+          cors: true
+        
+  list_user_mtd_costs:
+    handler: billing/mtd.listUserMtdCostsHandler
+    memorySize: 128
+    events:
+      - http:
+          path: billing/list-user-mtd-costs
+          method: post
+          cors: true
+ 
+  user_cost_history:
+    handler: billing/mtd.getUserCostHistoryHandler
+    memorySize: 256
+    timeout: 30
+    events:
+      - http:
+          path: billing/user-cost-history
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    LambdaJSIAMPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        ManagedPolicyName: ${self:provider.environment.LAMBDA_JS_IAM_POLICY_NAME}
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - s3:GetObject
+                - s3:PutObject
+                - s3:ListBucket
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:Query 
+                - dynamodb:UpdateItem
+                - dynamodb:Scan
+                - sqs:SendMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+                - bedrock:InvokeModelWithResponseStream
+                - bedrock:InvokeModel
+              Resource:
+                - '${self:provider.environment.LLM_ENDPOINTS_SECRETS_NAME_ARN}'
+                - "arn:aws:secretsmanager:${aws:region}:*:secret:${self:provider.environment.SECRETS_ARN_NAME}*"
+                - "arn:aws:s3:::${self:provider.environment.S3_FILE_TEXT_BUCKET_NAME}/*"
+                - "arn:aws:s3:::${self:provider.environment.S3_IMAGE_INPUT_BUCKET_NAME}/*"
+                - "arn:aws:s3:::${self:provider.environment.TRACE_BUCKET_NAME}/*"
+                - "arn:aws:s3:::${self:provider.environment.ASSISTANT_TASK_RESULTS_BUCKET_NAME}/*"
+                - "arn:aws:s3:::${self:provider.environment.ASSISTANT_LOGS_BUCKET_NAME}/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.GROUPS_DYNAMO_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.GROUPS_DYNAMO_TABLE}/*"
+                - "arn:aws:s3:::${self:provider.environment.S3_GROUP_ASSISTANT_CONVERSATIONS_BUCKET_NAME}"
+                - "arn:aws:s3:::${self:provider.environment.S3_GROUP_ASSISTANT_CONVERSATIONS_BUCKET_NAME}/*"
+                - "arn:aws:sqs:${aws:region}:*:${self:provider.environment.ASSISTANT_QUEUE_NAME}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.CHAT_USAGE_DYNAMO_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.CHAT_USAGE_DYNAMO_TABLE}/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.API_KEYS_DYNAMODB_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.API_KEYS_DYNAMODB_TABLE}/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.REQUEST_STATE_DYNAMO_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.HASH_FILES_DYNAMO_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.COST_CALCULATIONS_DYNAMO_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.COST_CALCULATIONS_DYNAMO_TABLE}/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.HISTORY_COST_CALCULATIONS_DYNAMO_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.HISTORY_COST_CALCULATIONS_DYNAMO_TABLE}/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.MODEL_RATE_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.MODEL_RATE_TABLE}/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.GROUP_ASSISTANT_CONVERSATIONS_DYNAMO_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.GROUP_ASSISTANT_CONVERSATIONS_DYNAMO_TABLE}/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ADMIN_DYNAMODB_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.AGENT_STATE_DYNAMODB_TABLE}"
+                - 'arn:aws:bedrock:*::foundation-model/*'
+                - "arn:aws:bedrock:*:${aws:accountId}:inference-profile/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource:
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ASSISTANTS_ALIASES_DYNAMODB_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ASSISTANTS_DYNAMODB_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ASSISTANTS_DYNAMODB_TABLE}/index/*"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.AGENT_STATE_DYNAMODB_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ASSISTANT_LOOKUP_DYNAMODB_TABLE}"
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ASSISTANT_LOOKUP_DYNAMODB_TABLE}/index/*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource:
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.DATASOURCE_REGISTRY_DYNAMO_TABLE}"
+            - Effect: Allow
+              Action:
+                - dynamodb:DeleteItem
+              Resource:
+                - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.REQUEST_STATE_DYNAMO_TABLE}"
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource:
+                - "arn:aws:s3:::${self:provider.environment.S3_RAG_INPUT_BUCKET_NAME}/*"
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeGuardrail
+                - bedrock:ApplyGuardrail
+              Resource:
+                - "arn:aws:bedrock:*:${aws:accountId}:guardrail/${self:provider.environment.BEDROCK_GUARDRAIL_ID, '*'}"
+                - "arn:aws:bedrock:*:${aws:accountId}:guardrail-profile/*"
+    
+    RequestStateDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          -
+            AttributeName: requestId
+            AttributeType: S
+          -
+            AttributeName: user
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: user
+            KeyType: HASH
+          -
+            AttributeName: requestId
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        TableName: ${self:provider.environment.REQUEST_STATE_DYNAMO_TABLE}
+    DatasourceRegistryDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          -
+            AttributeName: type
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: type
+            KeyType: HASH
+        TableName: ${self:provider.environment.DATASOURCE_REGISTRY_DYNAMO_TABLE}
+    CostCalculationsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: accountInfo
+            AttributeType: S
+          - AttributeName: record_type
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: accountInfo
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: record-type-user-index
+            KeySchema:
+              - AttributeName: record_type
+                KeyType: HASH
+              - AttributeName: id
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        TableName: ${self:provider.environment.COST_CALCULATIONS_DYNAMO_TABLE}
+    HistoryCostCalculationsDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        AttributeDefinitions:
+          - AttributeName: userDate
+            AttributeType: S
+          - AttributeName: accountInfo
+            AttributeType: S
+          - AttributeName: record_type
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userDate
+            KeyType: HASH
+          - AttributeName: accountInfo
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: record-type-user-index
+            KeySchema:
+              - AttributeName: record_type
+                KeyType: HASH
+              - AttributeName: userDate
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        TableName: ${self:provider.environment.HISTORY_COST_CALCULATIONS_DYNAMO_TABLE}
+    ChatTracesBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: ${self:provider.environment.TRACE_BUCKET_NAME}
+    AssistantTaskQueue:
+          Type: "AWS::SQS::Queue"
+          Properties:
+            VisibilityTimeout: 900
+            QueueName: ${self:provider.environment.ASSISTANT_QUEUE_NAME}            
+    AssistantTaskResultsBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: ${self:provider.environment.ASSISTANT_TASK_RESULTS_BUCKET_NAME}
+    AssistantLogsBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: ${self:provider.environment.ASSISTANT_LOGS_BUCKET_NAME}
+    BedrockIAMPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        ManagedPolicyName: ${self:service}-${sls:stage}-bedrock-policy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModelWithResponseStream
+                - bedrock:InvokeModel
+              Resource:
+                - 'arn:aws:bedrock:*::foundation-model/*'
+                - !Sub arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*
+  Outputs:
+    BedrockIAMPolicyArn:
+      Value: 
+        Ref: BedrockIAMPolicy
+      Export:
+        Name: ${self:service}-${sls:stage}-BedrockIAMPolicyArn

@@ -1,0 +1,364 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'sidebar-enhancements.css';
+@import 'table-enhancements.css';
+
+/* White Label CSS Custom Properties */
+/* These variables can be overridden in a custom CSS file to rebrand the application */
+/* Light theme colors (default) */
+:root {
+  /* Primary color (blue) - used for buttons, links, highlights */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+  
+  /* Secondary color (purple) - used for accents, secondary actions */
+  --color-secondary-50: #faf5ff;
+  --color-secondary-100: #f3e8ff;
+  --color-secondary-200: #e9d5ff;
+  --color-secondary-300: #d8b4fe;
+  --color-secondary-400: #c084fc;
+  --color-secondary-500: #a855f7;
+  --color-secondary-600: #9333ea;
+  --color-secondary-700: #7e22ce;
+  --color-secondary-800: #6b21a8;
+  --color-secondary-900: #581c87;
+  --color-secondary-950: #3b0764;
+  
+  /* Accent color (green) - used for success states, positive actions */
+  --color-accent-50: #f0fdf4;
+  --color-accent-100: #dcfce7;
+  --color-accent-200: #bbf7d0;
+  --color-accent-300: #86efac;
+  --color-accent-400: #4ade80;
+  --color-accent-500: #22c55e;
+  --color-accent-600: #16a34a;
+  --color-accent-700: #15803d;
+  --color-accent-800: #166534;
+  --color-accent-900: #14532d;
+  --color-accent-950: #052e16;
+}
+
+/* Dark theme colors - automatically applied when dark mode is active */
+.dark {
+  /* Primary color (lighter blue for dark mode) */
+  --color-primary-50: #172554;
+  --color-primary-100: #1e3a8a;
+  --color-primary-200: #1e40af;
+  --color-primary-300: #1d4ed8;
+  --color-primary-400: #2563eb;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #60a5fa;
+  --color-primary-700: #93c5fd;
+  --color-primary-800: #bfdbfe;
+  --color-primary-900: #dbeafe;
+  --color-primary-950: #eff6ff;
+  
+  /* Secondary color (lighter purple for dark mode) */
+  --color-secondary-50: #3b0764;
+  --color-secondary-100: #581c87;
+  --color-secondary-200: #6b21a8;
+  --color-secondary-300: #7e22ce;
+  --color-secondary-400: #9333ea;
+  --color-secondary-500: #a855f7;
+  --color-secondary-600: #c084fc;
+  --color-secondary-700: #d8b4fe;
+  --color-secondary-800: #e9d5ff;
+  --color-secondary-900: #f3e8ff;
+  --color-secondary-950: #faf5ff;
+  
+  /* Accent color (lighter green for dark mode) */
+  --color-accent-50: #052e16;
+  --color-accent-100: #14532d;
+  --color-accent-200: #166534;
+  --color-accent-300: #15803d;
+  --color-accent-400: #16a34a;
+  --color-accent-500: #22c55e;
+  --color-accent-600: #4ade80;
+  --color-accent-700: #86efac;
+  --color-accent-800: #bbf7d0;
+  --color-accent-900: #dcfce7;
+  --color-accent-950: #f0fdf4;
+}
+
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #aaa;
+}
+
+::-webkit-scrollbar-track:hover {
+  background-color: #f2f2f2;
+}
+
+::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html {
+  @apply bg-white dark:bg-[#202123];
+}
+
+@media (max-width: 720px) {
+  pre {
+    width: calc(100vw - 110px);
+  }
+}
+
+pre:has(div.codeblock) {
+  padding: 0;
+}
+
+
+.custom-shadow {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .custom-shadow {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+
+
+/* Light mode (default) */
+@media (prefers-color-scheme: light) {
+  .chat-button-blue-color {
+    color: #1dbff5; 
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .chat-button-blue-color {
+    color: #8edffa; 
+  }
+}
+
+/* Common Layout Styles */
+.amplify-layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100vw;
+}
+
+.amplify-sidebar {
+  width: 16rem; /* 64px * 4 = 16rem (for Tailwind's w-64) */
+  background-color: #202123;
+}
+
+.amplify-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.amplify-header {
+  border-bottom: 1px solid;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Theme specific styles */
+.dark .amplify-header {
+  background-color: #202123;
+  border-color: #4b5563;
+  color: white;
+}
+
+.light .amplify-header {
+  background-color: white;
+  border-color: #e5e7eb;
+  color: #1f2937;
+}
+
+/* Message styles */
+.amplify-message-container {
+  max-width: 85%;
+  white-space: pre-wrap;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.amplify-user-message {
+  background-color: #3b82f6; /* bg-blue-500 */
+  color: white;
+}
+
+.amplify-assistant-message {
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+}
+
+.assistantContentBlock pre, 
+.assistantContentBlock table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dark .amplify-assistant-message {
+  background-color: #444654;
+  color: #f3f4f6;
+}
+
+.light .amplify-assistant-message {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+/* Special handling for tables and code blocks in assistant messages */
+.amplify-assistant-message table,
+.amplify-assistant-message pre,
+.amplify-assistant-message .overflow-x-auto {
+  max-width: 100%;
+  width: fit-content;
+  min-width: 100%;
+}
+
+/* Specific styling for code blocks in assistant messages */
+.assistantContentBlock pre {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.assistantContentBlock .codeblock {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Full-width assistant message styles */
+.amplify-assistant-message.w-full {
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 1rem 1.25rem;
+}
+
+/* Animation for hover elements */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes gradient-x {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: gradient-x 15s ease infinite;
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(-50%, 0px);
+  }
+  50% {
+    transform: translate(-50%, -4px);
+  }
+  100% {
+    transform: translate(-50%, 0px);
+  }
+}
+
+.animate-float {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* Large Text Placeholder Styling */
+.large-text-input::placeholder {
+  font-style: italic;
+  color: #6b7280; /* gray-500 */
+}
+
+/* ExpandedTextDisplay - Force proper text colors to override parent styles */
+.expanded-text-container {
+  /* Ensure consistent background and border */
+  background-color: white !important;
+}
+
+.expanded-text-content {
+  /* Force proper text colors with high specificity */
+  color: #111827 !important; /* text-gray-900 */
+  background-color: transparent !important;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .expanded-text-container {
+    background-color: #374151 !important; /* bg-gray-700 */
+  }
+  
+  .expanded-text-content {
+    color: #f3f4f6 !important; /* text-gray-100 */
+  }
+}
+
+/* Class-based dark mode support (for manual theme switching) */
+.dark .expanded-text-container {
+  background-color: #374151 !important; /* bg-gray-700 */
+}
+
+.dark .expanded-text-content {
+  color: #f3f4f6 !important; /* text-gray-100 */
+}
+
+/* Note: Unfortunately, CSS cannot style text inside textarea based on content patterns.
+   The italic styling for angle bracket placeholders is handled in React components. */
