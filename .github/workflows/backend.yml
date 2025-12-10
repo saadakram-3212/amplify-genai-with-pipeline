@@ -121,7 +121,7 @@ jobs:
 
       - name: Deploy Serverless Backend
         working-directory: amplify-genai-backend
-        run: serverless deploy --stage ${{ inputs.environment }}
+        run: npx serverless deploy --stage ${{ inputs.environment }}
 
       - name: Set outputs
         id: set_outputs
