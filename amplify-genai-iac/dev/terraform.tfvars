@@ -49,7 +49,7 @@ cloudwatch_log_group_name        = "amplifygenai-loggroup"
 cloudwatch_policy_name           = "amplifygenai-cloudwatch-policy"
 cloudwatch_log_stream_prefix     = "ecs"
 secret_access_policy_name        = "amplifygenai-secret-access-policy"
-ecs_alarm_email                  = "" #email addresss for SNS Topic on Scaling
+ecs_alarm_email                  = "your-email@example.com" #email addresss for SNS Topic on Scaling
 ecs_scale_down_alarm_description = "scaling up due to high CPU utilization"
 ecs_scale_up_alarm_description   = "scaling down due to low CPU utilization"
 
