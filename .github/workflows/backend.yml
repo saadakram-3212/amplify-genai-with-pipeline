@@ -1,0 +1,119 @@
+name: Backend Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy (dev or prod)"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment to deploy (dev or prod)"
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+    outputs:
+      backend_var_file:
+        description: "Path to the generated var file"
+        value: ${{ jobs.deploy.outputs.backend_var_file }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    outputs:
+      backend_var_file: ${{ steps.set_outputs.outputs.backend_var_file }}
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: us-east-1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Terraform outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: tf-outputs
+          path: ./tf
+
+      - name: Generate backend var file from template
+        id: generate_var
+        run: |
+          ENV="${{ inputs.environment }}"
+          TEMPLATE_FILE="amplify-genai-backend/dev-var.yml-example"
+          VAR_FILE="amplify-genai-backend/var/${ENV}-var.yml"
+          mkdir -p amplify-genai-backend/var
+
+          TF_JSON="./tf/tf.json"
+
+          # Extract Terraform outputs
+          AWS_ACCOUNT_ID=$(jq -r '.ecr_repository_uri.value' $TF_JSON | cut -d'.' -f1)
+          COGNITO_USER_POOL_ID=$(jq -r '.cognito_user_pool_id.value' $TF_JSON)
+          COGNITO_CLIENT_ID=$(jq -r '.cognito_user_pool_client_id.value' $TF_JSON)
+          OAUTH_ISSUER_BASE_URL=$(jq -r '.cognito_user_pool_url.value' $TF_JSON)
+          LLM_ENDPOINTS_SECRETS_NAME_ARN=$(jq -r '.openai_endpoints_secret_arn.value' $TF_JSON)
+          LLM_ENDPOINTS_SECRETS_NAME=$(jq -r '.openai_endpoints_secret_name.value' $TF_JSON)
+          OPENAI_API_KEY=$(jq -r '.openai_api_key_secret_name.value' $TF_JSON)
+          PANDOC_LAMBDA_LAYER_ARN=$(jq -r '.pandoc_lambda_layer_arn.value' $TF_JSON)
+          PRIVATE_SUBNET_ONE=$(jq -r '.private_subnet_ids.value[0]' $TF_JSON)
+          PRIVATE_SUBNET_TWO=$(jq -r '.private_subnet_ids.value[1]' $TF_JSON)
+          SECRETS_ARN_NAME=$(jq -r '.app_secrets_secret_arn.value' $TF_JSON)
+          VPC_ID=$(jq -r '.vpc_id.value' $TF_JSON)
+          APPLICATION_URL=$(jq -r '.application_url.value' $TF_JSON)
+          HOSTED_ZONE_ID=$(jq -r '.app_route53_zone_id.value' $TF_JSON)
+          VPC_CIDR=$(jq -r '.vpc_cidr_block.value' $TF_JSON)
+
+          # Copy template and replace placeholders
+          cp $TEMPLATE_FILE $VAR_FILE
+
+          sed -i "s|DEP_NAME:.*|DEP_NAME: \"$ENV\"|g" $VAR_FILE
+          sed -i "s|AWS_ACCOUNT_ID:.*|AWS_ACCOUNT_ID: \"$AWS_ACCOUNT_ID\"|g" $VAR_FILE
+          sed -i "s|COGNITO_USER_POOL_ID:.*|COGNITO_USER_POOL_ID: \"$COGNITO_USER_POOL_ID\"|g" $VAR_FILE
+          sed -i "s|COGNITO_CLIENT_ID:.*|COGNITO_CLIENT_ID: \"$COGNITO_CLIENT_ID\"|g" $VAR_FILE
+          sed -i "s|OAUTH_ISSUER_BASE_URL:.*|OAUTH_ISSUER_BASE_URL: \"$OAUTH_ISSUER_BASE_URL\"|g" $VAR_FILE
+          sed -i "s|LLM_ENDPOINTS_SECRETS_NAME_ARN:.*|LLM_ENDPOINTS_SECRETS_NAME_ARN: \"$LLM_ENDPOINTS_SECRETS_NAME_ARN\"|g" $VAR_FILE
+          sed -i "s|LLM_ENDPOINTS_SECRETS_NAME:.*|LLM_ENDPOINTS_SECRETS_NAME: \"$LLM_ENDPOINTS_SECRETS_NAME\"|g" $VAR_FILE
+          sed -i "s|OPENAI_API_KEY:.*|OPENAI_API_KEY: \"$OPENAI_API_KEY\"|g" $VAR_FILE
+          sed -i "s|PANDOC_LAMBDA_LAYER_ARN:.*|PANDOC_LAMBDA_LAYER_ARN: \"$PANDOC_LAMBDA_LAYER_ARN\"|g" $VAR_FILE
+          sed -i "s|PRIVATE_SUBNET_ONE:.*|PRIVATE_SUBNET_ONE: \"$PRIVATE_SUBNET_ONE\"|g" $VAR_FILE
+          sed -i "s|PRIVATE_SUBNET_TWO:.*|PRIVATE_SUBNET_TWO: \"$PRIVATE_SUBNET_TWO\"|g" $VAR_FILE
+          sed -i "s|SECRETS_ARN_NAME:.*|SECRETS_ARN_NAME: \"$SECRETS_ARN_NAME\"|g" $VAR_FILE
+          sed -i "s|VPC_ID:.*|VPC_ID: \"$VPC_ID\"|g" $VAR_FILE
+          sed -i "s|APPLICATION_URL:.*|APPLICATION_URL: \"$APPLICATION_URL\"|g" $VAR_FILE
+          sed -i "s|HOSTED_ZONE_ID:.*|HOSTED_ZONE_ID: \"$HOSTED_ZONE_ID\"|g" $VAR_FILE
+          sed -i "s|VPC_CIDR:.*|VPC_CIDR: \"$VPC_CIDR\"|g" $VAR_FILE
+
+          echo "backend_var_file=$VAR_FILE" >> $GITHUB_OUTPUT
+
+      - name: Install Node dependencies
+        working-directory: amplify-genai-backend
+        run: npm install
+
+      - name: Install Lambda JS dependencies
+        working-directory: amplify-genai-backend/amplify-lambda-js
+        run: npm install
+
+      - name: Install Markitdown for deployment
+        working-directory: amplify-genai-backend/amplify-lambda/markitdown
+        run: sudo ./markitdown.sh
+
+      - name: Deploy Serverless Backend
+        working-directory: amplify-genai-backend
+        run: serverless deploy --stage ${{ inputs.environment }}
+
+      - name: Set outputs
+        id: set_outputs
+        run: echo "backend_var_file=amplify-genai-backend/var/${{ inputs.environment }}-var.yml" >> $GITHUB_OUTPUT
