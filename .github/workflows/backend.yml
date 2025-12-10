@@ -46,10 +46,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+            node-version: '18'  
+            cache: 'npm'
+            cache-dependency-path: '**/package-lock.json'
+
       - name: Download Terraform outputs
         uses: dawidd6/action-download-artifact@v11
         with:
-          workflow: iac-deploy.yml  # Replace with your IAC workflow filename
+          workflow: iac-deploy.yml  
           name: tf-outputs
           path: ./tf
           github_token: ${{ secrets.GITHUB_TOKEN }}
