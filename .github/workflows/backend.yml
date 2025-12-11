@@ -117,6 +117,12 @@ jobs:
 
           echo "backend_var_file=$VAR_FILE" >> $GITHUB_OUTPUT
 
+      - name: Debug - Show generated var file
+        run: |
+          echo "=== Generated var file contents ==="
+          cat "${{ steps.generate_var.outputs.backend_var_file }}"
+          echo "=== End of var file ==="
+
 
       - name: Install Node dependencies
         working-directory: amplify-genai-backend
