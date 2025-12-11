@@ -261,6 +261,21 @@ jobs:
             COGNITO_ISSUER_ESCAPED=$(echo "$COGNITO_ISSUER" | sed 's/[\/&]/\\&/g')
             COGNITO_DOMAIN_ESCAPED=$(echo "$COGNITO_DOMAIN" | sed 's/[\/&]/\\&/g')
             COGNITO_CLIENT_ID_ESCAPED=$(echo "$COGNITO_CLIENT_ID" | sed 's/[\/&#]/\\&/g')
+
+            # Debug: Print all values
+            echo "=== Debug: Variable values ==="
+            echo "CHAT_ENDPOINT_URL: $CHAT_ENDPOINT_URL"
+            echo "API_BASE_URL: $API_BASE_URL"
+            echo "COGNITO_CLIENT_ID: $COGNITO_CLIENT_ID"
+            echo "COGNITO_ISSUER: $COGNITO_ISSUER"
+            echo "COGNITO_DOMAIN: $COGNITO_DOMAIN"
+            echo "=== After escaping ==="
+            echo "CHAT_ENDPOINT_ESCAPED: $CHAT_ENDPOINT_ESCAPED"
+            echo "API_BASE_URL_ESCAPED: $API_BASE_URL_ESCAPED"
+            echo "COGNITO_CLIENT_ID_ESCAPED: $COGNITO_CLIENT_ID_ESCAPED"
+            echo "COGNITO_ISSUER_ESCAPED: $COGNITO_ISSUER_ESCAPED"
+            echo "COGNITO_DOMAIN_ESCAPED: $COGNITO_DOMAIN_ESCAPED"
+            echo "==========================="
             
             # Update terraform.tfvars with sed using escaped values
             sed -i "s#\(CHAT_ENDPOINT *= *\"\)[^\"]*\"#\1${CHAT_ENDPOINT_ESCAPED}\"#g" terraform.tfvars
