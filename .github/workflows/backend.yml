@@ -22,31 +22,38 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
+      OPENAI_API_KEY:
+        required: true
     outputs:
       backend_var_file:
         description: "Path to the generated var file"
         value: ${{ jobs.deploy.outputs.backend_var_file }}
+      chat_endpoint_url:
+        description: "Chat Lambda Function URL"
+        value: ${{ jobs.deploy.outputs.chat_endpoint_url }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read  # Required for cross-workflow artifact download
+      actions: read
 
     outputs:
       backend_var_file: ${{ steps.set_outputs.outputs.backend_var_file }}
+      chat_endpoint_url: ${{ steps.sls_output.outputs.CHAT_ENDPOINT_URL }}
 
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: us-east-1
+      OPENAI_API_KEY_VALUE: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.11 (CORRECT WAY)
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -55,14 +62,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-            node-version: '18'  
-            cache: 'npm'
-            cache-dependency-path: '**/package-lock.json'
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
 
       - name: Download Terraform outputs
         uses: dawidd6/action-download-artifact@v11
         with:
-          workflow: iac-deploy.yml  
+          workflow: iac-deploy.yml
           name: tf-outputs
           path: ./tf
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -123,7 +130,6 @@ jobs:
           cat "${{ steps.generate_var.outputs.backend_var_file }}"
           echo "=== End of var file ==="
 
-
       - name: Install Node dependencies
         working-directory: amplify-genai-backend
         run: npm install
@@ -138,10 +144,8 @@ jobs:
 
       - name: Fix Python requirements cache permissions
         run: |
-          # Create and set proper permissions for the serverless-python-requirements cache
           mkdir -p /home/runner/.cache/serverless-python-requirements
           chmod -R 755 /home/runner/.cache/serverless-python-requirements
-          # Also ensure the runner user owns the cache directory
           sudo chown -R runner:runner /home/runner/.cache/serverless-python-requirements
 
       - name: Install Serverless Framework
@@ -151,6 +155,122 @@ jobs:
         working-directory: amplify-genai-backend
         run: npx serverless deploy --stage ${{ inputs.environment }}
 
+      
+      - name: Get Serverless Stack Outputs
+        id: sls_output
+        working-directory: amplify-genai-backend
+        run: |
+          CHAT_ENDPOINT_URL=$(npx serverless info --stage ${{ inputs.environment }} --verbose | grep "ChatLambdaFunctionUrl:" | awk '{print $2}')
+          if [ -z "$CHAT_ENDPOINT_URL" ]; then
+            echo "::error::Failed to retrieve ChatLambdaFunctionUrl"
+            exit 1
+          fi
+          echo "CHAT_ENDPOINT_URL=$CHAT_ENDPOINT_URL" >> $GITHUB_OUTPUT
+          echo "Chat endpoint: $CHAT_ENDPOINT_URL"
+
+      - name: Read Configuration and Terraform Outputs
+        id: read_config
+        run: |
+          ENV="${{ inputs.environment }}"
+          VAR_FILE="${{ steps.generate_var.outputs.backend_var_file }}"
+          TF_JSON="./tf/tf.json"
+
+          # Read from var file
+          CUSTOM_API_DOMAIN=$(grep 'CUSTOM_API_DOMAIN' "$VAR_FILE" | awk -F': ' '{ gsub(/^[ \t]*|[ \t]*$/,"",$2); gsub(/^"|"$/,"",$2); print $2 }')
+          SECRETS_ARN_NAME=$(grep 'SECRETS_ARN_NAME' "$VAR_FILE" | awk -F': ' '{ gsub(/^[ \t]*|[ \t]*$/,"",$2); gsub(/^"|"$/,"",$2); print $2 }')
+          OPENAI_API_KEY_SECRET_NAME=$(grep 'OPENAI_API_KEY' "$VAR_FILE" | awk -F': ' '{ gsub(/^[ \t]*|[ \t]*$/,"",$2); gsub(/^"|"$/,"",$2); print $2 }')
+
+          # Read from Terraform outputs
+          COGNITO_USER_POOL_URL=$(jq -r '.cognito_user_pool_url.value' "$TF_JSON")
+          USER_POOL_DOMAIN=$(jq -r '.user_pool_domain.value' "$TF_JSON")
+          COGNITO_CLIENT_ID=$(jq -r '.cognito_user_pool_client_id.value' "$TF_JSON")
+          COGNITO_USER_POOL_CLIENT_SECRET=$(jq -r '.cognito_user_pool_client_secret.value' "$TF_JSON")
+
+          # Construct derived values
+          API_BASE_URL="https://$CUSTOM_API_DOMAIN"
+          COGNITO_ISSUER="https://$COGNITO_USER_POOL_URL"
+          COGNITO_DOMAIN="https://$USER_POOL_DOMAIN"
+
+          # Export to environment for subsequent steps
+          echo "CUSTOM_API_DOMAIN=$CUSTOM_API_DOMAIN" >> $GITHUB_ENV
+          echo "SECRETS_ARN_NAME=$SECRETS_ARN_NAME" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY_SECRET_NAME=$OPENAI_API_KEY_SECRET_NAME" >> $GITHUB_ENV
+          echo "COGNITO_ISSUER=$COGNITO_ISSUER" >> $GITHUB_ENV
+          echo "COGNITO_DOMAIN=$COGNITO_DOMAIN" >> $GITHUB_ENV
+          echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" >> $GITHUB_ENV
+          echo "API_BASE_URL=$API_BASE_URL" >> $GITHUB_ENV
+          
+          # Store client secret in a step output (not environment)
+          echo "COGNITO_USER_POOL_CLIENT_SECRET=$COGNITO_USER_POOL_CLIENT_SECRET" >> $GITHUB_OUTPUT
+
+          echo "Configuration values read successfully."
+
+      - name: Generate NEXTAUTH_SECRET and Update Secrets
+        id: update_secrets
+        env:
+          CLIENT_SECRET: ${{ steps.read_config.outputs.COGNITO_USER_POOL_CLIENT_SECRET }}
+        run: |
+          # Generate a secure secret for NextAuth
+          NEXTAUTH_SECRET=$(openssl rand -hex 32)
+          echo "NEXTAUTH_SECRET generated."
+
+          # Check if the required API key is provided via secret
+          if [ -z "$OPENAI_API_KEY_VALUE" ]; then
+            echo "::error::OPENAI_API_KEY secret is not set. Please add it to your repository secrets."
+            exit 1
+          fi
+
+          # Fetch existing secret JSON to merge
+          EXISTING_SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRETS_ARN_NAME" --query 'SecretString' --output text 2>/dev/null || echo '{}')
+
+          # Merge new secrets with existing ones using jq
+          NEW_SECRET=$(echo "$EXISTING_SECRET_JSON" | jq --arg cc "$CLIENT_SECRET" \
+                                                       --arg oapi "$OPENAI_API_KEY_VALUE" \
+                                                       --arg nas "$NEXTAUTH_SECRET" \
+                                                       '. + {COGNITO_CLIENT_SECRET: $cc, OPENAI_API_KEY: $oapi, NEXTAUTH_SECRET: $nas}')
+
+          # Update the secret in AWS Secrets Manager
+          aws secretsmanager update-secret --secret-id "$SECRETS_ARN_NAME" --secret-string "$NEW_SECRET"
+          echo "Updated main AWS Secret with configuration."
+
+          # Also update the standalone OpenAI API key secret
+          aws secretsmanager update-secret --secret-id "$OPENAI_API_KEY_SECRET_NAME" --secret-string "$OPENAI_API_KEY_VALUE"
+          echo "Updated OpenAI API Key secret."
+
+      - name: Update Terraform Variables and Re-apply
+        id: update_terraform
+        env:
+          DEP_DIR: ../${{ inputs.environment }}
+        run: |
+          if [ ! -d "$DEP_DIR" ]; then
+            echo "::error::Terraform directory $DEP_DIR not found"
+            exit 1
+          fi
+
+          cd "$DEP_DIR"
+          
+          # Update terraform.tfvars with sed
+          sed -i "s|\(CHAT_ENDPOINT *= *\"\)[^\"]*\"|\1${{ steps.sls_output.outputs.CHAT_ENDPOINT_URL }}\"|g" terraform.tfvars
+          sed -i "s|\(API_BASE_URL *= *\"\)[^\"]*\"|\1${{ env.API_BASE_URL }}\"|g" terraform.tfvars
+          sed -i "s|\(COGNITO_CLIENT_ID *= *\"\)[^\"]*\"|\1${{ env.COGNITO_CLIENT_ID }}\"|g" terraform.tfvars
+          sed -i "s|\(COGNITO_ISSUER *= *\"\)[^\"]*\"|\1${{ env.COGNITO_ISSUER }}\"|g" terraform.tfvars
+          sed -i "s|\(COGNITO_DOMAIN *= *\"\)[^\"]*\"|\1${{ env.COGNITO_DOMAIN }}\"|g" terraform.tfvars
+          
+          # Ensure desired_count is at least 1
+          sed -i "s|\(desired_count *= *\)0|\11|g" terraform.tfvars
+          echo "Updated terraform.tfvars."
+
+          # Initialize Terraform if needed
+          if [ ! -d ".terraform" ]; then
+            terraform init
+          fi
+
+          # Re-apply Terraform to push the updated task definition
+          terraform apply -auto-approve
+          echo "Terraform apply complete."
+      
+
       - name: Set outputs
         id: set_outputs
-        run: echo "backend_var_file=amplify-genai-backend/var/${{ inputs.environment }}-var.yml" >> $GITHUB_OUTPUT
+        run: |
+          echo "backend_var_file=amplify-genai-backend/var/${{ inputs.environment }}-var.yml" >> $GITHUB_OUTPUT
