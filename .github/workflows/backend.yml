@@ -240,35 +240,41 @@ jobs:
       - name: Update Terraform Variables and Re-apply
         id: update_terraform
         run: |
-          DEP_DIR="amplify-genai-iac/${{ inputs.environment }}"
-    
-          if [ ! -d "$DEP_DIR" ]; then
+            DEP_DIR="amplify-genai-iac/${{ inputs.environment }}"
+            
+            if [ ! -d "$DEP_DIR" ]; then
             echo "::error::Terraform directory $DEP_DIR not found"
             exit 1
-          fi
+            fi
 
-          cd "$DEP_DIR"
-          
-          # Update terraform.tfvars with sed
-          sed -i "s|\(CHAT_ENDPOINT *= *\"\)[^\"]*\"|\1${{ steps.sls_output.outputs.CHAT_ENDPOINT_URL }}\"|g" terraform.tfvars
-          sed -i "s|\(API_BASE_URL *= *\"\)[^\"]*\"|\1${{ env.API_BASE_URL }}\"|g" terraform.tfvars
-          sed -i "s|\(COGNITO_CLIENT_ID *= *\"\)[^\"]*\"|\1${{ env.COGNITO_CLIENT_ID }}\"|g" terraform.tfvars
-          sed -i "s|\(COGNITO_ISSUER *= *\"\)[^\"]*\"|\1${{ env.COGNITO_ISSUER }}\"|g" terraform.tfvars
-          sed -i "s|\(COGNITO_DOMAIN *= *\"\)[^\"]*\"|\1${{ env.COGNITO_DOMAIN }}\"|g" terraform.tfvars
-          
-          # Ensure desired_count is at least 1
-          sed -i "s|\(desired_count *= *\)0|\11|g" terraform.tfvars
-          echo "Updated terraform.tfvars."
+            cd "$DEP_DIR"
+            
+            
+            CHAT_ENDPOINT_ESCAPED=$(echo "${{ steps.sls_output.outputs.CHAT_ENDPOINT_URL }}" | sed 's/[\/&]/\\&/g')
+            API_BASE_URL_ESCAPED=$(echo "${{ env.API_BASE_URL }}" | sed 's/[\/&]/\\&/g')
+            COGNITO_ISSUER_ESCAPED=$(echo "${{ env.COGNITO_ISSUER }}" | sed 's/[\/&]/\\&/g')
+            COGNITO_DOMAIN_ESCAPED=$(echo "${{ env.COGNITO_DOMAIN }}" | sed 's/[\/&]/\\&/g')
+            
+            # Update terraform.tfvars with sed
+            sed -i "s#\(CHAT_ENDPOINT *= *\"\)[^\"]*\"#\1${{ steps.sls_output.outputs.CHAT_ENDPOINT_URL }}\"#g" terraform.tfvars
+            sed -i "s#\(API_BASE_URL *= *\"\)[^\"]*\"#\1${{ env.API_BASE_URL }}\"#g" terraform.tfvars
+            sed -i "s#\(COGNITO_CLIENT_ID *= *\"\)[^\"]*\"#\1${{ env.COGNITO_CLIENT_ID }}\"#g" terraform.tfvars
+            sed -i "s#\(COGNITO_ISSUER *= *\"\)[^\"]*\"#\1${{ env.COGNITO_ISSUER }}\"#g" terraform.tfvars
+            sed -i "s#\(COGNITO_DOMAIN *= *\"\)[^\"]*\"#\1${{ env.COGNITO_DOMAIN }}\"#g" terraform.tfvars
+            sed -i "s#\(desired_count *= *\)0#\11#g" terraform.tfvars
+            
+            # Ensure desired_count is at least 1
+            sed -i "s|\(desired_count *= *\)0|\11|g" terraform.tfvars
+            echo "Updated terraform.tfvars."
 
-          # Initialize Terraform if needed
-          if [ ! -d ".terraform" ]; then
+            # Initialize Terraform if needed
+            if [ ! -d ".terraform" ]; then
             terraform init
-          fi
+            fi
 
-          # Re-apply Terraform to push the updated task definition
-          terraform apply -auto-approve
-          echo "Terraform apply complete."
-      
+            # Re-apply Terraform to push the updated task definition
+            terraform apply -auto-approve
+            echo "Terraform apply complete."
 
       - name: Set outputs
         id: set_outputs
