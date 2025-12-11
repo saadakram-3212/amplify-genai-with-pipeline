@@ -17,6 +17,9 @@ plugins:
 custom:
   pythonRequirements:
     dockerizePip: true
+    dockerImage: public.ecr.aws/sam/build-python3.11:latest
+    useDownloadCache: false  # ← ADD THIS
+    pipCache: false  # ← ADD THIS
     layer: true
     slim: false
 
