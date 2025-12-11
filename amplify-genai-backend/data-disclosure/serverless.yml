@@ -15,6 +15,9 @@ plugins:
 custom:
   pythonRequirements:
     dockerizePip: true
+    dockerImage: public.ecr.aws/sam/build-python3.11:latest
+    useDownloadCache: false
+    pipCache: false  
 
   cf-changesets:
     requireChangeSet: ${self:custom.stageVars.CHANGE_SET_BOOLEAN}
