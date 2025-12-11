@@ -117,13 +117,6 @@ jobs:
 
           echo "backend_var_file=$VAR_FILE" >> $GITHUB_OUTPUT
 
-      - name: Fix Python requirements cache permissions
-        run: |
-          # Create and set proper permissions for the serverless-python-requirements cache
-          mkdir -p /home/runner/.cache/serverless-python-requirements
-          chmod -R 755 /home/runner/.cache/serverless-python-requirements
-          # Also ensure the runner user owns the cache directory
-          sudo chown -R runner:runner /home/runner/.cache/serverless-python-requirements
 
       - name: Install Node dependencies
         working-directory: amplify-genai-backend
@@ -136,6 +129,14 @@ jobs:
       - name: Install Markitdown for deployment
         working-directory: amplify-genai-backend/amplify-lambda/markitdown
         run: sudo ./markitdown.sh
+
+      - name: Fix Python requirements cache permissions
+        run: |
+          # Create and set proper permissions for the serverless-python-requirements cache
+          mkdir -p /home/runner/.cache/serverless-python-requirements
+          chmod -R 755 /home/runner/.cache/serverless-python-requirements
+          # Also ensure the runner user owns the cache directory
+          sudo chown -R runner:runner /home/runner/.cache/serverless-python-requirements
 
       - name: Install Serverless Framework
         run: npm install -g serverless@3
