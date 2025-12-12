@@ -49,9 +49,6 @@ jobs:
     uses: ./.github/workflows/docker-frontend.yml
     with:
       environment: ${{ inputs.environment }}
-      ecr_repo: ${{ needs.deploy-iac.outputs.tf_outputs && fromJSON(needs.deploy-iac.outputs.tf_outputs).ecr_repository_name.value || format('amplify-frontend-{0}', inputs.environment) }}
-      ecs_cluster: ${{ needs.deploy-iac.outputs.tf_outputs && fromJSON(needs.deploy-iac.outputs.tf_outputs).ecs_cluster_name.value || format('amplify-cluster-{0}', inputs.environment) }}
-      ecs_service: ${{ needs.deploy-iac.outputs.tf_outputs && fromJSON(needs.deploy-iac.outputs.tf_outputs).ecs_service_name.value || format('amplify-service-{0}', inputs.environment) }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
