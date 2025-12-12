@@ -75,7 +75,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v11
         with:
           workflow: iac-deploy.yml
-          name: tf-outputs
+          name: tf-outputs-${{ inputs.environment }}
           path: ./tf
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow_conclusion: success

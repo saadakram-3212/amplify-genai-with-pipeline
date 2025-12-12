@@ -78,5 +78,5 @@ jobs:
       - name: Upload tf.json for other workflows
         uses: actions/upload-artifact@v4
         with:
-          name: tf-outputs
+          name: tf-outputs-${{ github.event.inputs.environment || inputs.environment }}
           path: ${{ env.env_folder }}/tf.json
