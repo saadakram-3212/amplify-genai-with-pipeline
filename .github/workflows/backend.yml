@@ -271,7 +271,7 @@ jobs:
             # Debug: Print all values
             echo "=== Debug: Variable values ==="
             echo "CHAT_ENDPOINT_URL: $CHAT_ENDPOINT_URL"
-            echo "CHAT_ENDPOINT_URL: $API_BASE_URL"
+            echo "API_BASE_URL: $API_BASE_URL"
             echo "COGNITO_CLIENT_ID: $COGNITO_CLIENT_ID"
             echo "COGNITO_ISSUER: $COGNITO_ISSUER"
             echo "COGNITO_DOMAIN: $COGNITO_DOMAIN"
@@ -279,7 +279,7 @@ jobs:
             
             # Update terraform.tfvars with sed using escaped values
             sed -i "s#\(CHAT_ENDPOINT *= *\"\)[^\"]*\"#\1${CHAT_ENDPOINT_URL}\"#g" terraform.tfvars
-            sed -i "s#\(API_BASE_URL *= *\"\)[^\"]*\"#\1${CHAT_ENDPOINT_URL}\"#g" terraform.tfvars
+            sed -i "s#\(API_BASE_URL *= *\"\)[^\"]*\"#\1${API_BASE_URL}\"#g" terraform.tfvars
             sed -i "s#\(COGNITO_CLIENT_ID *= *\"\)[^\"]*\"#\1${COGNITO_CLIENT_ID}\"#g" terraform.tfvars
             sed -i "s#\(COGNITO_ISSUER *= *\"\)[^\"]*\"#\1${COGNITO_ISSUER}\"#g" terraform.tfvars
             sed -i "s#\(COGNITO_DOMAIN *= *\"\)[^\"]*\"#\1${COGNITO_DOMAIN}\"#g" terraform.tfvars
