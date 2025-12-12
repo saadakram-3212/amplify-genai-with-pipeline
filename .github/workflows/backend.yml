@@ -65,6 +65,11 @@ jobs:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
 
       - name: Download Terraform outputs
         uses: dawidd6/action-download-artifact@v11
@@ -160,13 +165,19 @@ jobs:
         id: sls_output
         working-directory: amplify-genai-backend
         run: |
-          CHAT_ENDPOINT_URL=$(npx serverless info --stage dev --verbose --service amplify-lambda-js | grep "ChatLambdaFunctionUrl:" | awk '{print $2}')
-          if [ -z "$CHAT_ENDPOINT_URL" ]; then
+          CHAT_ENDPOINT_URL=$(npx serverless info --stage dev --verbose --service amplify-lambda-js 2>&1 | 
+          grep -o "ChatLambdaFunctionUrl: [^ ]*" |
+            sed 's/ChatLambdaFunctionUrl: //' |
+            head -1)
+          
+          if [ -z "$CHAT_ENDPOINT_URL" ]; then  
             echo "::error::Failed to retrieve ChatLambdaFunctionUrl"
             exit 1
           fi
+
           echo "CHAT_ENDPOINT_URL=$CHAT_ENDPOINT_URL" >> $GITHUB_OUTPUT
           echo "Chat endpoint: $CHAT_ENDPOINT_URL"
+
 
       - name: Read Configuration and Terraform Outputs
         id: read_config
