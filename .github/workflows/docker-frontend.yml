@@ -10,35 +10,11 @@ on:
         options:
           - dev
           - prod
-      ecr_repo:
-        description: "ECR repository name"
-        required: true
-        type: string
-      ecs_cluster:
-        description: "ECS cluster name"
-        required: true
-        type: string
-      ecs_service:
-        description: "ECS service name"
-        required: true
-        type: string
 
   workflow_call:
     inputs:
       environment:
         description: "Environment (dev or prod)"
-        required: true
-        type: string
-      ecr_repo:
-        description: "ECR repository name"
-        required: true
-        type: string
-      ecs_cluster:
-        description: "ECS cluster name"
-        required: true
-        type: string
-      ecs_service:
-        description: "ECS service name"
         required: true
         type: string
     secrets:
@@ -75,15 +51,63 @@ jobs:
       - name: Set environment variables
         run: |
           echo "ENVIRONMENT=${{ inputs.environment }}" >> $GITHUB_ENV
-          echo "ECR_REPO=${{ inputs.ecr_repo }}" >> $GITHUB_ENV
-          echo "ECS_CLUSTER=${{ inputs.ecs_cluster }}" >> $GITHUB_ENV
-          echo "ECS_SERVICE=${{ inputs.ecs_service }}" >> $GITHUB_ENV
 
       - name: Configure AWS CLI
         run: |
           aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
           aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
           aws configure set region "$AWS_REGION"
+
+      - name: Download Terraform outputs
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          workflow: iac-deploy.yml
+          name: tf-outputs-${{ inputs.environment }}
+          path: ./tf
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow_conclusion: success
+
+      - name: Extract ECR and ECS information from Terraform outputs
+        id: extract_infra
+        run: |
+          TF_JSON="./tf/tf.json"
+          
+          # Check if the file exists
+          if [ ! -f "$TF_JSON" ]; then
+            echo "::error::Terraform outputs file not found at $TF_JSON"
+            exit 1
+          fi
+          
+          # Extract only the required values
+          ECR_REPOSITORY_NAME=$(jq -r '.ecr_repository_name.value' "$TF_JSON")
+          ECS_CLUSTER_NAME=$(jq -r '.ecs_cluster_name.value' "$TF_JSON")
+          ECS_SERVICE_NAME=$(jq -r '.ecs_service_name.value' "$TF_JSON")
+          
+          # Validate extracted values
+          if [ -z "$ECR_REPOSITORY_NAME" ] || [ "$ECR_REPOSITORY_NAME" = "null" ]; then
+            echo "::error::Failed to extract ecr_repository_name from Terraform outputs"
+            exit 1
+          fi
+          
+          if [ -z "$ECS_CLUSTER_NAME" ] || [ "$ECS_CLUSTER_NAME" = "null" ]; then
+            echo "::error::Failed to extract ecs_cluster_name from Terraform outputs"
+            exit 1
+          fi
+          
+          if [ -z "$ECS_SERVICE_NAME" ] || [ "$ECS_SERVICE_NAME" = "null" ]; then
+            echo "::error::Failed to extract ecs_service_name from Terraform outputs"
+            exit 1
+          fi
+          
+          # Set environment variables (same names as original for compatibility)
+          echo "ECR_REPO=$ECR_REPOSITORY_NAME" >> $GITHUB_ENV
+          echo "ECS_CLUSTER=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
+          echo "ECS_SERVICE=$ECS_SERVICE_NAME" >> $GITHUB_ENV
+          
+          echo "Extracted infrastructure values:"
+          echo "ECR Repository: $ECR_REPOSITORY_NAME"
+          echo "ECS Cluster: $ECS_CLUSTER_NAME"
+          echo "ECS Service: $ECS_SERVICE_NAME"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
