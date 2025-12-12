@@ -11,9 +11,15 @@ on:
           - dev
           - prod
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   deploy-iac:
     name: Deploy Infrastructure
+    permissions:
+      contents: read
     uses: ./.github/workflows/iac-deploy.yml
     with:
       environment: ${{ inputs.environment }}
@@ -24,6 +30,9 @@ jobs:
   deploy-backend:
     name: Deploy Backend
     needs: deploy-iac
+    permissions:
+      contents: read
+      actions: read
     uses: ./.github/workflows/backend.yml
     with:
       environment: ${{ inputs.environment }}
@@ -35,6 +44,8 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend
     needs: deploy-backend
+    permissions:
+      contents: read
     uses: ./.github/workflows/docker-frontend.yml
     with:
       environment: ${{ inputs.environment }}
@@ -52,5 +63,4 @@ jobs:
     steps:
       - name: Print Deployment Summary
         run: |
-          echo "Full stack deployment completed successfully!"
-          echo ""
+          echo "✅ Full stack deployment completed successfully!"
