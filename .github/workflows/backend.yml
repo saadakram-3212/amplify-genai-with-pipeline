@@ -175,8 +175,30 @@ jobs:
             exit 1
           fi
 
+          
+
+          API_BASE_URL=$(npx serverless info --stage dev --verbose --service amplify-object-access 2>&1 | 
+            grep -o "ServiceEndpoint: [^ ]*" |
+            sed 's/ServiceEndpoint: //' |
+            head -1)
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Failed to retrieve API_BASE_URL
+            exit 1
+            fi
+        
+          ASSISTANTS_API_BASE="${API_BASE_URL}/assistant"
+
           echo "CHAT_ENDPOINT_URL=$CHAT_ENDPOINT_URL" >> $GITHUB_OUTPUT
+          echo "API_BASE_URL=$API_BASE_URL" >> $GITHUB_OUTPUT
+          echo "ASSISTANTS_API_BASE=$ASSISTANTS_API_BASE" >> $GITHUB_OUTPUT
+          
           echo "Chat endpoint: $CHAT_ENDPOINT_URL"
+          echo "API base URL: $API_BASE_URL"
+          echo "Assistants API base: $ASSISTANTS_API_BASE"
+
+
+
+          
 
 
       - name: Read Configuration and Terraform Outputs
@@ -198,7 +220,6 @@ jobs:
           COGNITO_USER_POOL_CLIENT_SECRET=$(jq -r '.cognito_user_pool_client_secret.value' "$TF_JSON")
 
           # Construct derived values
-          API_BASE_URL="$CUSTOM_API_DOMAIN"
           COGNITO_ISSUER="$COGNITO_USER_POOL_URL"
           COGNITO_DOMAIN="https://$USER_POOL_DOMAIN"
 
@@ -209,7 +230,6 @@ jobs:
           echo "COGNITO_ISSUER=$COGNITO_ISSUER" >> $GITHUB_ENV
           echo "COGNITO_DOMAIN=$COGNITO_DOMAIN" >> $GITHUB_ENV
           echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" >> $GITHUB_ENV
-          echo "API_BASE_URL=$API_BASE_URL" >> $GITHUB_ENV
           
           # Store client secret in a step output (not environment)
           echo "COGNITO_USER_POOL_CLIENT_SECRET=$COGNITO_USER_POOL_CLIENT_SECRET" >> $GITHUB_OUTPUT
@@ -253,9 +273,11 @@ jobs:
         env:
           CHAT_ENDPOINT_URL: ${{ steps.sls_output.outputs.CHAT_ENDPOINT_URL }}
           API_BASE_URL: ${{ env.API_BASE_URL }}
+          ASSISTANTS_API_BASE: ${{env.ASSISTANTS_API_BASE}}
           COGNITO_CLIENT_ID: ${{ env.COGNITO_CLIENT_ID }}
           COGNITO_ISSUER: ${{ env.COGNITO_ISSUER }}
           COGNITO_DOMAIN: ${{ env.COGNITO_DOMAIN }}
+
         run: |
             DEP_DIR="amplify-genai-iac/${{ inputs.environment }}"
             
@@ -283,7 +305,7 @@ jobs:
             sed -i "s#\(COGNITO_CLIENT_ID *= *\"\)[^\"]*\"#\1${COGNITO_CLIENT_ID}\"#g" terraform.tfvars
             sed -i "s#\(COGNITO_ISSUER *= *\"\)[^\"]*\"#\1${COGNITO_ISSUER}\"#g" terraform.tfvars
             sed -i "s#\(COGNITO_DOMAIN *= *\"\)[^\"]*\"#\1${COGNITO_DOMAIN}\"#g" terraform.tfvars
-            
+            sed -i "s#\(ASSISTANTS_API_BASE *= *\"\)[^\"]*\"#\1${ASSISTANTS_API_BASE}\"#g" terraform.tfvars
             # Ensure desired_count is at least 1
             sed -i "s|\(desired_count *= *\)0|\11|g" terraform.tfvars
             echo "Updated terraform.tfvars."
