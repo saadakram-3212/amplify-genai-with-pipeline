@@ -272,8 +272,8 @@ jobs:
         id: update_terraform
         env:
           CHAT_ENDPOINT_URL: ${{ steps.sls_output.outputs.CHAT_ENDPOINT_URL }}
-          API_BASE_URL: ${{ env.API_BASE_URL }}
-          ASSISTANTS_API_BASE: ${{env.ASSISTANTS_API_BASE}}
+          API_BASE_URL: ${{ steps.sls_output.outputs.API_BASE_URL }}
+          ASSISTANTS_API_BASE: ${{steps.sls_output.outputs.ASSISTANTS_API_BASE}}
           COGNITO_CLIENT_ID: ${{ env.COGNITO_CLIENT_ID }}
           COGNITO_ISSUER: ${{ env.COGNITO_ISSUER }}
           COGNITO_DOMAIN: ${{ env.COGNITO_DOMAIN }}
