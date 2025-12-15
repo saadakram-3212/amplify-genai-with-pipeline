@@ -231,6 +231,8 @@ jobs:
           USER_POOL_DOMAIN=$(jq -r '.user_pool_domain.value' "$TF_JSON")
           COGNITO_CLIENT_ID=$(jq -r '.cognito_user_pool_client_id.value' "$TF_JSON")
           COGNITO_USER_POOL_CLIENT_SECRET=$(jq -r '.cognito_user_pool_client_secret.value' "$TF_JSON")
+          APPLICATION_URL=$(jq -r '.application_url.value' "$TF_JSON")
+          
 
           # Construct derived values
           COGNITO_ISSUER="$COGNITO_USER_POOL_URL"
@@ -243,6 +245,7 @@ jobs:
           echo "COGNITO_ISSUER=$COGNITO_ISSUER" >> $GITHUB_ENV
           echo "COGNITO_DOMAIN=$COGNITO_DOMAIN" >> $GITHUB_ENV
           echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID" >> $GITHUB_ENV
+          echo "APPLICATION_URL=$APPLICATION_URL" >> $GITHUB_ENV
           
           # Store client secret in a step output (not environment)
           echo "COGNITO_USER_POOL_CLIENT_SECRET=$COGNITO_USER_POOL_CLIENT_SECRET" >> $GITHUB_OUTPUT
@@ -290,6 +293,7 @@ jobs:
           COGNITO_CLIENT_ID: ${{ env.COGNITO_CLIENT_ID }}
           COGNITO_ISSUER: ${{ env.COGNITO_ISSUER }}
           COGNITO_DOMAIN: ${{ env.COGNITO_DOMAIN }}
+          APPLICATION_URL: ${{ env.APPLICATION_URL }}
 
         run: |
             DEP_DIR="amplify-genai-iac/${{ inputs.environment }}"
@@ -310,6 +314,7 @@ jobs:
             echo "COGNITO_CLIENT_ID: $COGNITO_CLIENT_ID"
             echo "COGNITO_ISSUER: $COGNITO_ISSUER"
             echo "COGNITO_DOMAIN: $COGNITO_DOMAIN"
+            echo "APPLICATION_URL: $APPLICATION_URL"
 
             
             # Update terraform.tfvars with sed using escaped values
@@ -319,6 +324,7 @@ jobs:
             sed -i "s#\(COGNITO_ISSUER *= *\"\)[^\"]*\"#\1${COGNITO_ISSUER}\"#g" terraform.tfvars
             sed -i "s#\(COGNITO_DOMAIN *= *\"\)[^\"]*\"#\1${COGNITO_DOMAIN}\"#g" terraform.tfvars
             sed -i "s#\(ASSISTANTS_API_BASE *= *\"\)[^\"]*\"#\1${ASSISTANTS_API_BASE}\"#g" terraform.tfvars
+            sed -i "s#\(NEXTAUTH_URL *= *\"\)[^\"]*\"#\1${APPLICATION_URL}\"#g" terraform.tfvars
             # Ensure desired_count is at least 1
             sed -i "s|\(desired_count *= *\)0|\11|g" terraform.tfvars
             echo "Updated terraform.tfvars."
