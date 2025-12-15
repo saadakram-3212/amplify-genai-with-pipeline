@@ -12,16 +12,19 @@ services:
     path: ./amplify-lambda-admin
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
   
   amplify-lambda-api:
     path: ./amplify-lambda-api
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
 
   amplify-lambda-artifacts:
     path: ./amplify-lambda-artifacts
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
 
   amplify-lambda-js:
     path: ./amplify-lambda-js
@@ -32,26 +35,31 @@ services:
     path: ./amplify-lambda-ops
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
 
   chat-billing:
     path: ./chat-billing
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
 
   data-disclosure:
     path: ./data-disclosure
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
   
   amplify-embedding:
     path: ./embedding
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
   
   amplify-object-access:
     path: ./object-access
     dependsOn:
       - amplify-lambda
+      - amplify-assistants
       - amplify-embedding
   
 
