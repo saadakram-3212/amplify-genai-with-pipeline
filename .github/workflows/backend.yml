@@ -17,6 +17,11 @@ on:
         description: "Environment to deploy (dev or prod)"
         required: true
         type: string
+      skip_artifact_download:
+        description: "Skip downloading artifacts (use when called from parent)"
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -72,6 +77,7 @@ jobs:
           terraform_version: 1.9.0
 
       - name: Download Terraform outputs
+        if: ${{ !inputs.skip_artifact_download }}
         uses: dawidd6/action-download-artifact@v11
         with:
           workflow: iac-deploy.yml
@@ -79,6 +85,13 @@ jobs:
           path: ./tf
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow_conclusion: success
+
+      - name: Download Terraform outputs from current run
+        if: ${{ inputs.skip_artifact_download }}
+        uses: actions/download-artifact@v4
+        with:
+          name: tf-outputs-${{ inputs.environment }}
+          path: ./tf
 
       - name: Generate backend var file from template
         id: generate_var

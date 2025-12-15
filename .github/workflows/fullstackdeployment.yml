@@ -36,6 +36,7 @@ jobs:
     uses: ./.github/workflows/backend.yml
     with:
       environment: ${{ inputs.environment }}
+      skip_artifact_download: true
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
