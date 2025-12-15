@@ -165,9 +165,9 @@ jobs:
         id: sls_output
         working-directory: amplify-genai-backend
         run: |
-          CHAT_ENDPOINT_URL=$(npx serverless info --stage dev --verbose --service amplify-lambda-js 2>&1 | 
-          grep -o "ChatLambdaFunctionUrl: [^ ]*" |
-            sed 's/ChatLambdaFunctionUrl: //' |
+          CHAT_ENDPOINT_URL=$(npx serverless info --stage ${{ inputs.environment }} --verbose --service amplify-lambda-js 2>&1 | \
+          grep -o "ChatLambdaFunctionUrl: [^ ]*" | \
+            sed 's/ChatLambdaFunctionUrl: //' | \
             head -1)
           
           if [ -z "$CHAT_ENDPOINT_URL" ]; then  
@@ -177,14 +177,14 @@ jobs:
 
           
 
-          API_BASE_URL=$(npx serverless info --stage dev --verbose --service amplify-object-access 2>&1 | 
+          API_BASE_URL=$(npx serverless info --stage ${{ inputs.environment }} --verbose --service amplify-object-access 2>&1 | 
             grep -o "ServiceEndpoint: [^ ]*" |
             sed 's/ServiceEndpoint: //' |
             head -1)
           if [ -z "$API_BASE_URL" ]; then
-            echo "::error::Failed to retrieve API_BASE_URL
+            echo "::error::Failed to retrieve API_BASE_URL"
             exit 1
-            fi
+          fi
         
           ASSISTANTS_API_BASE="${API_BASE_URL}/assistant"
 
