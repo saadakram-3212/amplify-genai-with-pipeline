@@ -107,7 +107,7 @@ jobs:
           AWS_ACCOUNT_ID=$(jq -r '.ecr_repository_uri.value' $TF_JSON | cut -d'.' -f1)
           COGNITO_USER_POOL_ID=$(jq -r '.cognito_user_pool_id.value' $TF_JSON)
           COGNITO_CLIENT_ID=$(jq -r '.cognito_user_pool_client_id.value' $TF_JSON)
-          OAUTH_ISSUER_BASE_URL=$(jq -r '.cognito_user_pool_url.value' $TF_JSON)
+          OAUTH_ISSUER_BASE_URL="https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}"
           LLM_ENDPOINTS_SECRETS_NAME_ARN=$(jq -r '.openai_endpoints_secret_arn.value' $TF_JSON)
           LLM_ENDPOINTS_SECRETS_NAME=$(jq -r '.openai_endpoints_secret_name.value' $TF_JSON)
           OPENAI_API_KEY=$(jq -r '.openai_api_key_secret_name.value' $TF_JSON)
@@ -236,8 +236,9 @@ jobs:
           
 
           # Construct derived values
-          COGNITO_ISSUER="$COGNITO_USER_POOL_URL"
-          COGNITO_DOMAIN="https://$USER_POOL_DOMAIN"
+          COGNITO_USER_POOL_ID=$(jq -r '.cognito_user_pool_id.value' "$TF_JSON")
+          COGNITO_ISSUER="https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}"
+          COGNITO_DOMAIN="$COGNITO_USER_POOL_URL"
 
           # Export to environment for subsequent steps
           echo "CUSTOM_API_DOMAIN=$CUSTOM_API_DOMAIN" >> $GITHUB_ENV
