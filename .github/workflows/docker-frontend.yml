@@ -17,6 +17,11 @@ on:
         description: "Environment (dev or prod)"
         required: true
         type: string
+      skip_artifact_download:
+        description: "Skip downloading artifacts"
+        required: false
+        type: boolean
+        default: false
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -59,6 +64,7 @@ jobs:
           aws configure set region "$AWS_REGION"
 
       - name: Download Terraform outputs
+        if: ${{ !inputs.skip_artifact_download }}
         uses: dawidd6/action-download-artifact@v11
         with:
           workflow: iac-deploy.yml
@@ -66,6 +72,13 @@ jobs:
           path: ./tf
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow_conclusion: success
+
+      - name: Download Terraform outputs from current run
+        if: ${{ inputs.skip_artifact_download }}
+        uses: actions/download-artifact@v4
+        with:
+          name: tf-outputs-${{ inputs.environment }}
+          path: ./tf
 
       - name: Extract ECR and ECS information from Terraform outputs
         id: extract_infra
