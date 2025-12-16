@@ -139,6 +139,7 @@ jobs:
           sed -i "s|APPLICATION_URL:.*|APPLICATION_URL: \"$APPLICATION_URL\"|g" $VAR_FILE
           sed -i "s|HOSTED_ZONE_ID:.*|HOSTED_ZONE_ID: \"$HOSTED_ZONE_ID\"|g" $VAR_FILE
           sed -i "s|VPC_CIDR:.*|VPC_CIDR: \"$VPC_CIDR\"|g" $VAR_FILE
+          sed -i "s|OAUTH_AUDIENCE:.*|OAUTH_AUDIENCE: \"$COGNITO_CLIENT_ID\"|g" $VAR_FILE
 
           echo "backend_var_file=$VAR_FILE" >> $GITHUB_OUTPUT
 
