@@ -119,11 +119,12 @@ jobs:
           APPLICATION_URL=$(jq -r '.application_url.value' $TF_JSON)
           HOSTED_ZONE_ID=$(jq -r '.app_route53_zone_id.value' $TF_JSON)
           VPC_CIDR=$(jq -r '.vpc_cidr_block.value' $TF_JSON)
+          DEPLOYMENT_NAME=$(jq -r '.DeploymentName.value' $TF_JSON)
 
           # Copy template and replace placeholders
           cp $TEMPLATE_FILE $VAR_FILE
 
-          sed -i "s|DEP_NAME:.*|DEP_NAME: \"$ENV\"|g" $VAR_FILE
+          sed -i "s|DEP_NAME:.*|DEP_NAME: \"$DEPLOYMENT_NAME\"|g" $VAR_FILE
           sed -i "s|AWS_ACCOUNT_ID:.*|AWS_ACCOUNT_ID: \"$AWS_ACCOUNT_ID\"|g" $VAR_FILE
           sed -i "s|COGNITO_USER_POOL_ID:.*|COGNITO_USER_POOL_ID: \"$COGNITO_USER_POOL_ID\"|g" $VAR_FILE
           sed -i "s|COGNITO_CLIENT_ID:.*|COGNITO_CLIENT_ID: \"$COGNITO_CLIENT_ID\"|g" $VAR_FILE
