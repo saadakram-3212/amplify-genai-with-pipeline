@@ -197,3 +197,7 @@ output "application_url" {
   description = "The URL to access the application"
   value       = module.load_balancer.application_url
 }
+
+output "DeploymentName" {
+  value = var.DeploymentName
+}

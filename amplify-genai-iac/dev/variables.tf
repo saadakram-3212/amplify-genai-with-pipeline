@@ -380,3 +380,9 @@ variable "vpc_name" {
   type        = string
   default     = "main-vpc"
 }
+
+variable "DeploymentName" {
+  description = "Deployment Name"
+  type        = string
+  default     = ""
+}

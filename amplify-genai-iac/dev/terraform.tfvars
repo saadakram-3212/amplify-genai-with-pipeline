@@ -94,3 +94,5 @@ envs = {
   OPENAI_API_TYPE             = "azure"
   OPENAI_API_VERSION          = "2024-02-15-preview"
 }
+
+DeploymentName = "eurustest"
