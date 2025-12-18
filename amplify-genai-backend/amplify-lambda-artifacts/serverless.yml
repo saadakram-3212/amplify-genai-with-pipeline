@@ -18,6 +18,7 @@ custom:
     dockerImage: public.ecr.aws/sam/build-python3.11:latest
     useDownloadCache: false  # ← ADD THIS
     pipCache: false  # ← ADD THIS
+    useStaticCache: false
 
   cf-changesets:
     requireChangeSet: ${self:custom.stageVars.CHANGE_SET_BOOLEAN}
