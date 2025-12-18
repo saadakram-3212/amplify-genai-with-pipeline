@@ -19,6 +19,11 @@ custom:
     useDownloadCache: false  # ← ADD THIS
     pipCache: false  # ← ADD THIS
     layer: true
+    compatibleRuntimes:
+      - python3.11
+    useStaticCache: true
+    cacheLocation: ./requirements-cache
+    invalidateCaches: true
 
   cf-changesets:
     requireChangeSet: ${self:custom.stageVars.CHANGE_SET_BOOLEAN}
