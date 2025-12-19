@@ -50,7 +50,7 @@ provider:
     API_KEYS_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-object-access-${sls:stage}-api-keys
     ACCOUNTS_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-accounts
     COST_CALCULATIONS_DYNAMO_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-lambda-${sls:stage}-cost-calculations
-    S3_API_DOCUMENTATION_BUCKET: ${self:service}-${sls:stage}-documentation-bucket-mytest
+    S3_API_DOCUMENTATION_BUCKET: ${self:service}-${sls:stage}-documentation-bucket
     LAMBDA_API_IAM_POLICY_NAME: ${self:service}-${sls:stage}-iam-policy
     IDP_PREFIX: ${self:custom.stageVars.IDP_PREFIX}
     #API_BASE_URL: https://${self:custom.stageVars.CUSTOM_API_DOMAIN}

@@ -69,23 +69,23 @@ provider:
     ACCOUNTS_DYNAMO_TABLE: ${self:service}-${sls:stage}-accounts
     CHAT_USAGE_DYNAMO_TABLE: ${self:service}-${sls:stage}-chat-usage
     COST_CALCULATIONS_DYNAMO_TABLE: ${self:service}-${sls:stage}-cost-calculations
-    S3_ACCESS_LOGS_BUCKET_NAME: ${self:service}-${sls:stage}-access-mytest
+    S3_ACCESS_LOGS_BUCKET_NAME: ${self:service}-${sls:stage}-access
     LAMBDA_IAM_POLICY_NAME: ${self:service}-${sls:stage}-lambda-policy
     DB_CONNECTIONS_TABLE: ${self:service}-${sls:stage}-db-connections
-    S3_BUCKET_NAME: ${self:service}-${sls:stage}-share-state-mytest  
-    S3_CONVERSION_INPUT_BUCKET_NAME: ${self:service}-${sls:stage}-document-conversion-input-mytest
-    S3_CONVERSION_OUTPUT_BUCKET_NAME: ${self:service}-${sls:stage}-document-conversion-output-mytest
-    S3_ASSISTANT_UPLOADS_BUCKET_NAME: ${self:service}-${sls:stage}-assistant-uploads-mytest
-    S3_IMAGE_INPUT_BUCKET_NAME: ${self:service}-${sls:stage}-image-input-mytest
-    S3_RAG_INPUT_BUCKET_NAME: ${self:service}-${sls:stage}-rag-input-mytest
-    S3_RAG_CHUNKS_BUCKET_NAME: ${self:service}-${sls:stage}-rag-chunks-mytest
-    S3_FILE_TEXT_BUCKET_NAME: ${self:service}-${sls:stage}-file-text-mytest
+    S3_BUCKET_NAME: ${self:service}-${sls:stage}-share-state  
+    S3_CONVERSION_INPUT_BUCKET_NAME: ${self:service}-${sls:stage}-document-conversion-input
+    S3_CONVERSION_OUTPUT_BUCKET_NAME: ${self:service}-${sls:stage}-document-conversion-output
+    S3_ASSISTANT_UPLOADS_BUCKET_NAME: ${self:service}-${sls:stage}-assistant-uploads
+    S3_IMAGE_INPUT_BUCKET_NAME: ${self:service}-${sls:stage}-image-input
+    S3_RAG_INPUT_BUCKET_NAME: ${self:service}-${sls:stage}-rag-input
+    S3_RAG_CHUNKS_BUCKET_NAME: ${self:service}-${sls:stage}-rag-chunks
+    S3_FILE_TEXT_BUCKET_NAME: ${self:service}-${sls:stage}-file-text
     SQS_RAG_DOCUMENT_INDEX_QUEUE: ${self:service}-${sls:stage}-rag-document-index-queue
     SQS_RAG_CHUNK_DOCUMENT_INDEX_QUEUE: ${self:service}-${sls:stage}-rag-document-chunk-queue
     EMBEDDING_PROGRESS_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-embedding-${sls:stage}-embedding-progress
     OBJECT_ACCESS_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-object-access-${sls:stage}-object-access
-    S3_CONVERSATIONS_BUCKET_NAME:  ${self:service}-${sls:stage}-user-conversations-mytest
-    S3_ZIP_FILE_BUCKET_NAME: ${self:service}-${sls:stage}-zip-files-mytest
+    S3_CONVERSATIONS_BUCKET_NAME:  ${self:service}-${sls:stage}-user-conversations
+    S3_ZIP_FILE_BUCKET_NAME: ${self:service}-${sls:stage}-zip-files
     API_KEYS_DYNAMODB_TABLE: amplify-${self:custom.stageVars.DEP_NAME}-object-access-${sls:stage}-api-keys
     CONVERSATION_METADATA_TABLE: ${self:service}-${sls:stage}-conversation-metadata
     #API_BASE_URL: https://${self:custom.stageVars.CUSTOM_API_DOMAIN}

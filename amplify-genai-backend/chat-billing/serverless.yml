@@ -50,7 +50,7 @@ provider:
   versionFunctions: false
   logRetentionInDays: 365
   deploymentBucket:
-    name: ${self:service}-${sls:stage}-deployment-bucket-mytest
+    name: ${self:service}-${sls:stage}-deployment-bucket
     serverSideEncryption: AES256
   
   apiGateway:
